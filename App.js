@@ -32,11 +32,12 @@ Ext.define('CustomApp', {
 		var timeboxRecord = scope.record.raw;
 		RELEASE_ID = timeboxRecord.ObjectID;
 		START_DATE = new Date( timeboxRecord.ReleaseStartDate );
+		START_DATE.setHours( 0,0,0,0 );
 		END_DATE = new Date( timeboxRecord.ReleaseDate );
-		DATE_ITR = END_DATE;
+		END_DATE.setHours( 0,0,0,0 );
 		FEATURES = [];
 		
-		this.loadFeaturesForDate( DATE_ITR );
+		this.loadFeaturesForDate( END_DATE );
 	},
 	
 	loadFeaturesForDate: function( date ) {
@@ -85,17 +86,18 @@ Ext.define('CustomApp', {
 	},
 	
 	onFeaturesLoaded: function( store, records ) {
-		/*// If we already have data for this date, skip it
-		for ( var i = 0; i < DATA.length; i ++ ) {
-			if ( DATA[i].date == DATE_ITR ) {
-				return false;
-			}
-		} */
+		var recordItr;
+		var data;
+		var featureItr;
+		var feature;
+		var date = new Date( store.findConfig.__At );
 		
+		console.log(date);
 		// Just track those features that were in the project at the end of the release
-		if ( DATE_ITR == END_DATE ) {
-			for ( var recordItr = 0; recordItr < records.length; recordItr ++ ) {
-				var data = records[ recordItr ].data;
+		if ( date.getTime() == END_DATE.getTime() ) {
+			console.log( "Creating Features Array..." );
+			for ( recordItr = 0; recordItr < records.length; recordItr ++ ) {
+				data = records[ recordItr ].data;
 
 				var new_feature = true;
 				for ( var x = 0; x < FEATURES.length; x++ ) {
@@ -106,54 +108,58 @@ Ext.define('CustomApp', {
 		
 				// Add this feature to our feature array if it's new
 				if ( new_feature ) {
-					var feature = {};
+					feature = {};
 					feature.formattedId = data.FormattedID;
 					feature.name = data.Name;
 					feature.actualStartDate = ( data.ActualStartDate === "" ? null : new Date( data.ActualStartDate ) );
 					feature.actualEndDate = ( data.ActualEndDate === "" ? null : new Date( data.ActualEndDate ) );
 					feature.displayColor = data.DisplayColor;
+					feature.dateData = [];
 			
 					FEATURES.push( feature );
 				}
 			}
 			FEATURES.sort( this.compareFeatures );
-			
-			console.log( FEATURES );
+			console.log(FEATURES);
 		}
-	}
-		/*
-		var date_data = {};
-		date_data.date = new Date( DATE_ITR.valueOf() );
 		
-		var total_scope = 0;
-		var completed_scope = 0;
-					
-		for ( var j = 0; j < records.length; j ++ ) {
-			var record_data = records[j].data;
+		for ( featureItr = 0; featureItr < FEATURES.length; featureItr ++ ) {
+			feature = FEATURES[ featureItr ];
 			
-			if ( !_.contains( UNCOMMITTED_SCHEDULE_STATES, record_data.ScheduleState ) ) {
-				total_scope = total_scope + record_data.PlanEstimate;
-				if ( _.contains( COMPLETED_SCHEDULE_STATES, record_data.ScheduleState ) ) {
-					completed_scope = completed_scope + record_data.PlanEstimate;
+			var dateDatum = {};
+			dateDatum.date = date;
+			dateDatum.total = null;
+			dateDatum.progress = null;
+			
+			for ( recordItr = 0; recordItr < records.length; recordItr ++ ) {
+				data = records[ recordItr ].data;
+				var featureId = data.FormattedID;
+	
+				if ( feature.formattedId == featureId ) {
+					dateDatum.total = data.LeafStoryPlanEstimateTotal;
+					dateDatum.progress = data.AcceptedLeafStoryPlanEstimateTotal;
 				}
 			}
+			
+			feature.dateData.unshift( dateDatum );
 		}
 		
-		date_data.total_scope = total_scope;
-		date_data.completed_scope = completed_scope;
-		DATA.push( date_data );
+		
 		
 		// Load the next date if we're not done
-		if ( DATE_ITR <= END_DATE ) {
-			DATE_ITR.setDate( DATE_ITR.getDate() + 1 );
-			this.loadWorkItemsForDate( DATE_ITR );
+		//if ( DATE_ITR >= START_DATE ) {
+		if ( FEATURES[0].dateData.length <= 5 ) {
+			date.setDate( date.getDate() - 1 );
+			this.loadFeaturesForDate( date );
 		} else {
 			this.createHighChartData();
 		}
 	},
 	
 	createHighChartData: function() {
-		this._myMask.hide();
+		console.log( FEATURES );
+	}
+		/*this._myMask.hide();
 		this.removeAll();
 		
 		var chart = this.add({
