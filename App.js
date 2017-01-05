@@ -9,7 +9,6 @@ Ext.define('CustomApp', {
 	DATE_ITR: null,
 	START_DATE: null,
 	END_DATE: null,
-	
 	FEATURES: null,
 	
 	onScopeChange: function( scope ) {
@@ -34,6 +33,9 @@ Ext.define('CustomApp', {
 		START_DATE = new Date( timeboxRecord.ReleaseStartDate );
 		START_DATE.setHours( 0,0,0,0 );
 		END_DATE = new Date( timeboxRecord.ReleaseDate );
+		if ( END_DATE > new Date() ) {
+			END_DATE = new Date();
+		}
 		END_DATE.setHours( 0,0,0,0 );
 		FEATURES = [];
 		
@@ -120,7 +122,6 @@ Ext.define('CustomApp', {
 				}
 			}
 			FEATURES.sort( this.compareFeatures );
-			console.log(FEATURES);
 		}
 		
 		for ( featureItr = 0; featureItr < FEATURES.length; featureItr ++ ) {
@@ -128,8 +129,8 @@ Ext.define('CustomApp', {
 			
 			var dateDatum = {};
 			dateDatum.date = date;
-			dateDatum.total = null;
-			dateDatum.progress = null;
+			dateDatum.total = 0;
+			dateDatum.accepted = 0;
 			
 			for ( recordItr = 0; recordItr < records.length; recordItr ++ ) {
 				data = records[ recordItr ].data;
@@ -137,18 +138,16 @@ Ext.define('CustomApp', {
 	
 				if ( feature.formattedId == featureId ) {
 					dateDatum.total = data.LeafStoryPlanEstimateTotal;
-					dateDatum.progress = data.AcceptedLeafStoryPlanEstimateTotal;
+					dateDatum.accepted = data.AcceptedLeafStoryPlanEstimateTotal;
 				}
 			}
 			
 			feature.dateData.unshift( dateDatum );
 		}
 		
-		
-		
 		// Load the next date if we're not done
-		//if ( DATE_ITR >= START_DATE ) {
-		if ( FEATURES[0].dateData.length <= 5 ) {
+		if ( date >= START_DATE ) {
+		//if ( FEATURES[0].dateData.length <= 5 ) { // For testing, just fetch 5 dates
 			date.setDate( date.getDate() - 1 );
 			this.loadFeaturesForDate( date );
 		} else {
@@ -158,8 +157,8 @@ Ext.define('CustomApp', {
 	
 	createHighChartData: function() {
 		console.log( FEATURES );
-	}
-		/*this._myMask.hide();
+		
+		this._myMask.hide();
 		this.removeAll();
 		
 		var chart = this.add({
@@ -168,131 +167,117 @@ Ext.define('CustomApp', {
             chartData: this._getChartData(),
             chartConfig: this._getChartConfig()
         });
-        // TODO - Remove workaround
+
         // Workaround bug in setting colors - http://stackoverflow.com/questions/18361920/setting-colors-for-rally-chart-with-2-0rc1/18362186
-        chart.setChartColors( [ '#F6A900', '#B81B10', '#666' ] );
+        var colors = [];
+        for ( var x = 0; x < FEATURES.length; x++ ) {
+			colors.push( FEATURES[ x ].displayColor );
+			colors.push( '#000000' );
+        }
+        chart.setChartColors( colors );
 	},
 	
     _getChartData: function() {
-        var i;
-        var dates = [];
-        var totals = [];
-        var remainings = [];
-        var ideals = [];
-        var initial_scope = DATA[0].total_scope;
-        
-        // find the ideal velocity
-        var workdays = 0;
-        // TODO - could do _.each instead of for loops
-        for ( i = 0; i < DATA.length; i++ ) {
-			if ( !_.contains( WEEKEND_DAYS, DATA[i].date.getDay() ) ) {
-				workdays = workdays + 1;
-			}
-        }
-        var ideal_velocity = initial_scope / workdays;
-        
-        for ( i = 0; i < DATA.length; i++ ) {
-			// set the label to the day before to show where the data was at the end of the day
-			var date = new Date( DATA[i].date.valueOf() );
-			date.setDate( date.getDate() - 1 );
-			dates.push( date.toDateString() );
+		var dates = [];
+		var dateItr = START_DATE;
+		var series = [];
+
+		for ( var x = 0; x < FEATURES.length; x++ ) {
+			var feature = FEATURES[x];
+
+			var featureAcceptedSeries = {};
+			featureAcceptedSeries.name = feature.formattedId + ': ' + feature.name + ' (Accepted Points)';
+			featureAcceptedSeries.data = [];
+			series.unshift( featureAcceptedSeries );
 			
-			if ( date < Date.now() ) {
-				totals.push( DATA[i].total_scope );
-				remainings.push( DATA[i].total_scope - DATA[i].completed_scope );
-			} else {
-				totals.push( null );
-				remainings.push( null );
-			}
+			var featureRemainingSeries = {};
+			featureRemainingSeries.name = feature.formattedId + ': ' + feature.name + ' (Remaining Points)';
+			featureRemainingSeries.data = [];
+			series.unshift( featureRemainingSeries );
 			
-			if ( i === 0 ) {
-				ideals.push( initial_scope );
-			} else if ( _.contains( WEEKEND_DAYS, date.getDay() ) ) {
-				ideals.push( ideals[ i - 1 ] );
-			} else {
-				// there may be rounding on the last point that puts it below 0, so check for negative values
-				var new_ideal_point = ideals[ i - 1 ] - ideal_velocity;
-				if ( new_ideal_point > 0 ) {
-					ideals.push( new_ideal_point );
+			for ( var y = 0; y < feature.dateData.length; y++ ) {
+				var date = feature.dateData[y].date;
+				var total = feature.dateData[y].total;
+				if ( total === null ) {
+					total = 0;
+				}
+				var accepted = feature.dateData[y].accepted;
+				if ( accepted === null ) {
+					accepted = 0;
+				}
+				
+				if ( date >= feature.actualStartDate ) {
+				
+				//	if ( x === 0 ) {
+					featureAcceptedSeries.data.push( accepted );
+					featureRemainingSeries.data.push( total - accepted );
+				//	} else {
+				//		var chartHeight = series[ x * 2 - 1 ].data[y];
+				//		chartHeight = chartHeight + accepted;
+				//		featureAcceptedSeries.data.push( chartHeight );
+				//		featureTotalSeries.data.push( chartHeight + total );
+				//	}
 				} else {
-					ideals.push( 0 );
+					featureAcceptedSeries.data.push( 0 );
+					featureRemainingSeries.data.push( 0 );
 				}
 			}
-        }
-        
-        
+		}
+
+		while ( dateItr.getTime() <= END_DATE.getTime() ) {
+			dates.push( dateItr );
+			dateItr.setDate( dateItr.getDate() + 1 );
+		}
+
+		console.log(series);
+
         return {
             categories: dates,
-            series: [
-                {
-                    name: 'Remaining Scope',
-                    data: remainings,
-                    type: 'column'				
-                },
-				{
-                    name: 'Total Scope',
-                    data: totals,
-                    type: 'line',
-                    lineWidth: 4	
-                },
-				{
-                    name: 'Ideal Burndown',
-                    data: ideals,
-                    type: 'line',
-                    dashStyle: 'longdash',
-                    lineWidth: 4
-                }
-			]
+            series: series
         };
     },
 	
-
 	_getChartConfig: function() {
 		return {
-				chart: {
-					defaultSeriesType: 'area',
-					zoomType: 'xy'
-				},
+			chart: {
+				defaultSeriesType: 'area',
+				zoomType: 'xy'
+			},
+			title: {
+				text: 'Feature WIP'
+			},
+			xAxis: {
+				tickmarkPlacement: 'on',
+				type: 'datetime',
+				tickInterval: 1,
 				title: {
-					text: 'Iteration Burndown'
-				},
-				xAxis: {
-					tickmarkPlacement: 'on',
-					tickInterval: 1,
+					text: 'Date',
+					margin: 10
+				}
+			},
+			yAxis: [
+				{
 					title: {
-						text: 'Date',
-						margin: 10
-					}
-				},
-				yAxis: [
-					{
-						title: {
-							text: 'Points'
-						}
-					}
-				],
-				tooltip: {
-					formatter: function() {
-						return '' + this.x + '<br />' + this.series.name + ': ' + this.y;
-					}
-				},
-				plotOptions: {
-					series: {
-						marker: {
-							enabled: true,
-							states: {
-								hover: {
-									enabled: true
-								}
-							}
-						},
-						groupPadding: 0.01
-					}, 
-					column: {
-						stacking: null,
-						shadow: false
+						text: 'Points'
 					}
 				}
+			],
+			tooltip: {
+				formatter: function() {
+					return '' + this.x + '<br />' + this.series.name + ': ' + this.y;
+				}
+			},
+			plotOptions: {
+				area: {
+					stacking: 'normal',
+					lineColor: '#666666',
+					lineWidth: 1,
+					marker: {
+						lineWidth: 1,
+						lineColor: '#666666'
+					}
+				}
+			}
 		};
-	} */
+	}
 });
