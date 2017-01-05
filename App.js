@@ -20,11 +20,7 @@ Ext.define('CustomApp', {
 		this.removeAll();
 		
 		// Show loading message
-		this._myMask = new Ext.LoadMask( Ext.getBody(),
-			{
-				msg: "Loading..."
-			}
-		);
+		this._myMask = new Ext.LoadMask( Ext.getBody(), { msg: "Loading..." } );
 		this._myMask.show();
 		
 		// Load the data for the Release
@@ -170,7 +166,7 @@ Ext.define('CustomApp', {
 
         // Workaround bug in setting colors - http://stackoverflow.com/questions/18361920/setting-colors-for-rally-chart-with-2-0rc1/18362186
         var colors = [];
-        for ( var x = 0; x < FEATURES.length; x++ ) {
+        for ( var x = FEATURES.length - 1; x >= 0; x-- ) {
 			colors.push( FEATURES[ x ].displayColor );
 			colors.push( '#000000' );
         }
@@ -179,7 +175,7 @@ Ext.define('CustomApp', {
 	
     _getChartData: function() {
 		var dates = [];
-		var dateItr = START_DATE;
+		var dateItr = new Date( START_DATE );
 		var series = [];
 
 		for ( var x = 0; x < FEATURES.length; x++ ) {
@@ -207,16 +203,8 @@ Ext.define('CustomApp', {
 				}
 				
 				if ( date >= feature.actualStartDate ) {
-				
-				//	if ( x === 0 ) {
 					featureAcceptedSeries.data.push( accepted );
 					featureRemainingSeries.data.push( total - accepted );
-				//	} else {
-				//		var chartHeight = series[ x * 2 - 1 ].data[y];
-				//		chartHeight = chartHeight + accepted;
-				//		featureAcceptedSeries.data.push( chartHeight );
-				//		featureTotalSeries.data.push( chartHeight + total );
-				//	}
 				} else {
 					featureAcceptedSeries.data.push( 0 );
 					featureRemainingSeries.data.push( 0 );
@@ -225,7 +213,7 @@ Ext.define('CustomApp', {
 		}
 
 		while ( dateItr.getTime() <= END_DATE.getTime() ) {
-			dates.push( dateItr );
+			dates.push( 1 );
 			dateItr.setDate( dateItr.getDate() + 1 );
 		}
 
@@ -273,8 +261,7 @@ Ext.define('CustomApp', {
 					lineColor: '#666666',
 					lineWidth: 1,
 					marker: {
-						lineWidth: 1,
-						lineColor: '#666666'
+						enabled: false
 					}
 				}
 			}
