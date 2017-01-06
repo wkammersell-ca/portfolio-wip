@@ -9,6 +9,7 @@ Ext.define('CustomApp', {
 	DATE_ITR: null,
 	START_DATE: null,
 	END_DATE: null,
+	RELEASE_END_DATE: null,
 	FEATURES: null,
 	
 	onScopeChange: function( scope ) {
@@ -29,6 +30,7 @@ Ext.define('CustomApp', {
 		START_DATE = new Date( timeboxRecord.ReleaseStartDate );
 		START_DATE.setHours( 0,0,0,0 );
 		END_DATE = new Date( timeboxRecord.ReleaseDate );
+		RELEASE_END_DATE = END_DATE;
 		if ( END_DATE > new Date() ) {
 			END_DATE = new Date();
 		}
@@ -213,15 +215,14 @@ Ext.define('CustomApp', {
 		}
 
 		while ( dateItr.getTime() <= END_DATE.getTime() ) {
-			dates.push( 1 );
+			var dateString = ( dateItr.getMonth() + 1 ) + "/" + dateItr.getDate();
+			dates.push( dateString );
 			dateItr.setDate( dateItr.getDate() + 1 );
 		}
 
-		console.log(series);
-
         return {
-            categories: dates,
-            series: series
+            series: series,
+            categories: dates
         };
     },
 	
@@ -236,8 +237,7 @@ Ext.define('CustomApp', {
 			},
 			xAxis: {
 				tickmarkPlacement: 'on',
-				type: 'datetime',
-				tickInterval: 1,
+				tickInterval: 7,
 				title: {
 					text: 'Date',
 					margin: 10
