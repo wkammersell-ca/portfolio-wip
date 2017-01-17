@@ -130,13 +130,15 @@ Ext.define('CustomApp', {
 			dateDatum.total = 0;
 			dateDatum.accepted = 0;
 			
-			for ( recordItr = 0; recordItr < records.length; recordItr ++ ) {
-				data = records[ recordItr ].data;
-				var featureId = data.FormattedID;
+			if( ( date >= feature.actualStartDate ) && ( feature.actualStartDate !== null ) ) {
+				for ( recordItr = 0; recordItr < records.length; recordItr ++ ) {
+					data = records[ recordItr ].data;
+					var featureId = data.FormattedID;
 	
-				if ( feature.formattedId == featureId ) {
-					dateDatum.total = data.LeafStoryPlanEstimateTotal;
-					dateDatum.accepted = data.AcceptedLeafStoryPlanEstimateTotal;
+					if ( feature.formattedId == featureId ) {
+						dateDatum.total = data.LeafStoryPlanEstimateTotal;
+						dateDatum.accepted = data.AcceptedLeafStoryPlanEstimateTotal;
+					}
 				}
 			}
 			
