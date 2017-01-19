@@ -155,7 +155,7 @@
 		}
 		
 		// Load the next date if we're not done
-		if ( date >= START_DATE ) {
+		if ( date > START_DATE ) {
 		//if ( FEATURES[0].dateData.length <= 5 ) { // For testing, just fetch 5 dates
 			date.setDate( date.getDate() - 1 );
 			this.loadFeaturesForDate( date );
@@ -215,13 +215,8 @@
 					accepted = 0;
 				}
 				
-				if ( date >= feature.actualStartDate ) {
-					featureAcceptedSeries.data.push( accepted );
-					featureRemainingSeries.data.push( total - accepted );
-				} else {
-					featureAcceptedSeries.data.push( 0 );
-					featureRemainingSeries.data.push( 0 );
-				}
+				featureAcceptedSeries.data.push( accepted );
+				featureRemainingSeries.data.push( total - accepted );
 			}
 		}
 
