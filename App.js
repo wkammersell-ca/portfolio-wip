@@ -2,8 +2,6 @@ Ext.define('CustomApp', {
 	extend: 'Rally.app.TimeboxScopedApp',
 	scopeType: 'release',
 	WEEKEND_DAYS: [ 0, 6],
-	UNCOMMITTED_SCHEDULE_STATES: [ ],
-	COMPLETED_SCHEDULE_STATES: [ 'Accepted', 'Released' ],
 
 	RELEASE_ID: null,
 	DATE_ITR: null,
@@ -21,7 +19,7 @@ Ext.define('CustomApp', {
 		this.removeAll();
 		
 		// Show loading message
-		this._myMask = new Ext.LoadMask( Ext.getBody(), { msg: "Loading..." } );
+		this._myMask = new Ext.LoadMask( Ext.getBody(), { msg: "Loading Features..." } );
 		this._myMask.show();
 		
 		// Load the data for the Release
@@ -70,12 +68,16 @@ Ext.define('CustomApp', {
 	compareFeatures: function( a, b ) {
 		if ( a.actualEndDate === null && b.actualEndDate !== null ) {
 			return 1;
+		} else if ( a.actualEndDate !== null && b.actualEndDate === null ) {
+			return -1;
 		} else if ( a.actualEndDate < b.actualEndDate ) {
 			return -1;
 		} else if ( a.actualEndDate > b.actualEndDate ) {
 			return 1;
 		} else if ( a.actualStartDate === null && b.actualStartDate !== null ) {
 			return 1;
+		} else if ( a.actualStartDate !== null && b.actualStartDate === null ) {
+			return -1;
 		} else if ( a.actualStartDate < b.actualStartDate ) {
 			return -1;
 		} else if ( a.actualStartDate > b.actualStartDate ) {
@@ -92,10 +94,11 @@ Ext.define('CustomApp', {
 		var feature;
 		var date = new Date( store.findConfig.__At );
 		
-		console.log(date);
+		console.log("Fetching: " + date);
+		this._myMask.msg = "Loading: " + date;
+		
 		// Just track those features that were in the project at the end of the release
 		if ( date.getTime() == END_DATE.getTime() ) {
-			console.log( "Creating Features Array..." );
 			for ( recordItr = 0; recordItr < records.length; recordItr ++ ) {
 				data = records[ recordItr ].data;
 
@@ -115,7 +118,6 @@ Ext.define('CustomApp', {
 					feature.actualEndDate = ( data.ActualEndDate === "" ? null : new Date( data.ActualEndDate ) );
 					feature.displayColor = data.DisplayColor;
 					feature.dateData = [];
-			
 					FEATURES.push( feature );
 				}
 			}
@@ -156,8 +158,6 @@ Ext.define('CustomApp', {
 	},
 	
 	createHighChartData: function() {
-		console.log( FEATURES );
-		
 		this._myMask.hide();
 		this.removeAll();
 		
